@@ -50,7 +50,7 @@
         var codingLanguages = $("#coding-languages").val();
         var gpa = $("#gpa").val();
         var experience = $("#experience").val();
-        var preferredLocations = $("#location").val().split(',').map(location => location.trim());
+        var preferredLocations = $("#state").val().split(',').map(location => location.trim());
 
         var criteria = {
             codingLanguages: codingLanguages.split(',').map(lang => lang.trim()),
