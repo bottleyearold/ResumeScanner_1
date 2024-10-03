@@ -8,13 +8,13 @@
 </head>
 <body>
 
-<form>
+<form id="resumeForm">
 
     <div class="container">
-        <h3>Input Resume:</h3>
+        <h3>Upload Resume (PDF):</h3>
         <div class="form-group">
-            <label for="input">Enter Resume Text Here:</label>
-            <textarea id="input" class="form-control" rows="4"></textarea>
+            <label for="file-input">Select Resume PDF:</label>
+            <input id="file-input" class="form-control" type="file" accept=".pdf" required>
         </div>
 
         <h3>Admin Input (Criteria):</h3>
@@ -31,10 +31,9 @@
             <input id="experience" class="form-control" type="number" placeholder="e.g. 2">
         </div >
         <div class="form-group">
-            <label for="location">Prefered Locations (comma-separated):</label>
+            <label for="location">Preferred Locations (comma-separated):</label>
             <input id="location" class="form-control" type="text" placeholder="e.g. New York, San Francisco">
         </div>
-        <!-- Add other categories similarly -->
 
         <div class="form-group">
             <button type="button" class="btn btn-primary" onclick="analyzeResume()">Analyze</button>
@@ -47,12 +46,11 @@
 
 <script type="text/javascript">
     function analyzeResume() {
-        var input = $("#input").val();
+        var fileInput = document.getElementById("file-input");
         var codingLanguages = $("#coding-languages").val();
         var gpa = $("#gpa").val();
         var experience = $("#experience").val();
         var preferredLocations = $("#location").val().split(',').map(location => location.trim());
-
 
         var criteria = {
             codingLanguages: codingLanguages.split(',').map(lang => lang.trim()),
@@ -61,11 +59,17 @@
             preferredLocations: preferredLocations
         };
 
+
+        var formData = new FormData();
+        formData.append("resume", fileInput.files[0]);
+        formData.append("criteria", JSON.stringify(criteria));
+
         $.ajax({
             type: 'POST',
             url: "http://localhost:8080/api/v1/analyze",
-            contentType: 'application/json; charset=utf-8',
-            data: JSON.stringify({resume: input, criteria: criteria}),
+            processData: false, // Important: Prevent jQuery from processing the data
+            contentType: false, // Important: Prevent jQuery from setting content type
+            data: formData,
             success: function(response) {
                 var result = "";
                 response.forEach(function(match) {
@@ -80,3 +84,4 @@
 
 </body>
 </html>
+

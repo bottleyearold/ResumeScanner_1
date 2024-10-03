@@ -1,13 +1,18 @@
 package com.nlp.resumescanner_1.Controller;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nlp.resumescanner_1.model.Type;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,7 +25,7 @@ public class NERController {
     @Autowired
     private StanfordCoreNLP stanfordCoreNLP;
 
-    @PostMapping(value = "/analyze")
+   /* @PostMapping(value = "/analyze")
     public List<MatchResult> analyze(@RequestBody ResumeInput input) {
         CoreDocument coreDocument = new CoreDocument(input.getResume());
         stanfordCoreNLP.annotate(coreDocument);
@@ -38,7 +43,48 @@ public class NERController {
         results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));  // Sort with true (matched) first
 
         return results;
+    } */
+
+
+    // Change method signature
+    @PostMapping(value = "/analyze")
+    public List<MatchResult> analyze(@RequestParam("resume") MultipartFile resumeFile,
+                                     @RequestParam("criteria") String criteriaJson) throws IOException {
+        String resumeText;
+        try {
+            // Read PDF file and extract text
+            resumeText = extractTextFromPdf(resumeFile);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read the PDF file", e);
+        }
+
+        // Deserialize criteria JSON to Criteria object
+        Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
+
+        // Analyze the resume text with the extracted text
+        CoreDocument coreDocument = new CoreDocument(resumeText);
+        stanfordCoreNLP.annotate(coreDocument);
+        List<CoreLabel> coreLabels = coreDocument.tokens();
+
+        List<MatchResult> results = new ArrayList<>();
+        results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
+        results.add(matchGPA(coreLabels, criteria.getGpa()));
+        results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
+        results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
+        results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
+
+        return results;
     }
+
+    private String extractTextFromPdf(MultipartFile file) throws IOException {
+        // Use Apache PDFBox or another library to extract text from the PDF
+        PDDocument document = PDDocument.load(file.getInputStream());
+        PDFTextStripper pdfStripper = new PDFTextStripper();
+        String text = pdfStripper.getText(document);
+        document.close();
+        return text;
+    }
+
 
 
 
