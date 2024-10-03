@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/api/v1")
-public class NerController {
+public class NERController {
 
     @Autowired
     private StanfordCoreNLP stanfordCoreNLP;
