@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NER Application</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+
+<form>
+
+    <div class="container">
+        <h3>Input Resume:</h3>
+        <div class="form-group">
+            <label for="input">Enter Resume Text Here:</label>
+            <textarea id="input" class="form-control" rows="4"></textarea>
+        </div>
+
+        <h3>Admin Input (Criteria):</h3>
+        <div class="form-group">
+            <label for="coding-languages">Coding Languages (comma-separated):</label>
+            <input id="coding-languages" class="form-control" type="text" placeholder="e.g. Java, Python, SQL">
+        </div>
+        <div class="form-group">
+            <label for="gpa">GPA Requirement (min):</label>
+            <input id="gpa" class="form-control" type="number" placeholder="e.g. 3.5">
+        </div>
+        <div class="form-group">
+            <label for="experience">Years of Work Experience (min):</label>
+            <input id="experience" class="form-control" type="number" placeholder="e.g. 2">
+        </div >
+        <div class="form-group">
+            <label for="location">Prefered Locations (comma-separated):</label>
+            <input id="location" class="form-control" type="text" placeholder="e.g. New York, San Francisco">
+        </div>
+        <!-- Add other categories similarly -->
+
+        <div class="form-group">
+            <button type="button" class="btn btn-primary" onclick="analyzeResume()">Analyze</button>
+        </div>
+
+        <h3>Output:</h3>
+        <div id="result"></div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    function analyzeResume() {
+        var input = $("#input").val();
+        var codingLanguages = $("#coding-languages").val();
+        var gpa = $("#gpa").val();
+        var experience = $("#experience").val();
+        var preferredLocations = $("#location").val().split(',').map(location => location.trim());
+
+
+        var criteria = {
+            codingLanguages: codingLanguages.split(',').map(lang => lang.trim()),
+            gpa: gpa,
+            priorExperience: experience,
+            preferredLocations: preferredLocations
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: "http://localhost:8080/api/v1/analyze",
+            contentType: 'application/json; charset=utf-8',
+            data: JSON.stringify({resume: input, criteria: criteria}),
+            success: function(response) {
+                var result = "";
+                response.forEach(function(match) {
+                    var color = match.matched ? 'green' : 'red';
+                    result += "<span style='color: "+ color +"'>" + match.field + ": " + match.value + "</span><br/>";
+                });
+                $("#result").html(result);
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
