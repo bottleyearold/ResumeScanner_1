@@ -1,5 +1,7 @@
 package com.nlp.resumescanner_1.Controller;
+import com.nlp.resumescanner_1.model.Type;
 
+import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.CoreDocument;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -221,4 +223,3 @@ class MatchResult {
         this.matched = matched;
     }
 }
-

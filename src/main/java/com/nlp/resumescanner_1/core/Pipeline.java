@@ -1,4 +1,4 @@
-package com.nlp.resumescanner_1.Core;
+package com.nlp.resumescanner_1.core;
 
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.springframework.context.annotation.Bean;
