@@ -150,7 +150,7 @@ public class NERController {
                 .map(location -> location.toLowerCase().trim())
                 .collect(Collectors.toList());
 
-        // Concatenate core labels into a single string for easier matching of multi-word phrases
+
         String resumeText = coreLabels.stream()
                 .map(coreLabel -> coreLabel.originalText().toLowerCase())
                 .collect(Collectors.joining(" "));  // Join all tokens with a space
@@ -159,7 +159,7 @@ public class NERController {
         List<MatchResult> values = new ArrayList<>();
         for (String location : cleanedLocations) {
             boolean matched = resumeText.contains(location);  // Check if the location is present in the full resume text
-            values.add(new MatchResult("Location", location, matched));
+            values.add(new MatchResult("State", location, matched));
         }
         return values;
     }
