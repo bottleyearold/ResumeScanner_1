@@ -120,7 +120,6 @@ public class NERController {
 
 
 
-
 }
 
 // Class for the resume input from the admin form
@@ -152,6 +151,7 @@ class Criteria {
     private String gpa;
     private String priorExperience;
     private List<String> preferredLocations;
+
 
     public List<String> getPreferredLocations() {
         return preferredLocations;
