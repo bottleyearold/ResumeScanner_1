@@ -20,7 +20,7 @@ public class JobCriteriaRepository {
     // Save method to insert JobCriteria into the database
     public JobCriteria save(JobCriteria jobCriteria) {
         jdbcTemplate.update(
-                "INSERT INTO job_criteria (job_name, coding_languages, gpa, prior_experience, preferred_locations, languages, majors, weights) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO job_criteria (job_name, coding_languages, gpa, prior_experience, preferred_locations, languages, weights,majors) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 jobCriteria.getJobName(),
 
                 // Check if codingLanguages is null and use an empty list if it is
