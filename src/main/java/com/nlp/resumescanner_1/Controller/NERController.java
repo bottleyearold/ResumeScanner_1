@@ -1,4 +1,5 @@
 package com.nlp.resumescanner_1.Controller;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nlp.resumescanner_1.model.Type;
 
@@ -24,26 +25,6 @@ public class NERController {
 
   @Autowired private StanfordCoreNLP stanfordCoreNLP;
 
-  /* @PostMapping(value = "/analyze")
-  public List<MatchResult> analyze(@RequestBody ResumeInput input) {
-      CoreDocument coreDocument = new CoreDocument(input.getResume());
-      stanfordCoreNLP.annotate(coreDocument);
-      List<CoreLabel> coreLabels = coreDocument.tokens();
-
-      // Analyze the resume against the criteria
-      List<MatchResult> results = new ArrayList<>();
-
-      results.add(matchPriorExperience(coreLabels, input.getCriteria().getPriorExperience()));
-
-      results.add(matchGPA(coreLabels, input.getCriteria().getGpa()));
-
-      results.addAll(matchCodingSkills(coreLabels, input.getCriteria().getCodingLanguages()));
-      results.addAll(matchLocation(coreLabels, input.getCriteria().getPreferredLocations()));
-      results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));  // Sort with true (matched) first
-
-      return results;
-  } */
-
   // Change method signature
   @PostMapping(value = "/analyze")
   public List<MatchResult> analyze(
@@ -57,24 +38,49 @@ public class NERController {
     } catch (IOException e) {
       throw new RuntimeException("Failed to read the PDF file", e);
     }
+    // Deserialize criteria JSON to a List of Criteria objects
+    List<Criteria> criteriaList = new ObjectMapper().readValue(criteriaJson, new TypeReference<List<Criteria>>() {});
 
-    // Deserialize criteria JSON to Criteria object
-    Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
-
-    // Analyze the resume text with the extracted text
+// Analyze the resume text with Stanford CoreNLP
     CoreDocument coreDocument = new CoreDocument(resumeText);
     stanfordCoreNLP.annotate(coreDocument);
-    List<CoreLabel> coreLabels = coreDocument.tokens();
+    List<CoreLabel> coreLabels = coreDocument.tokens();  // <-- This is the definition of 'coreLabels'
 
+// Iterate over the criteriaList and perform matching
     List<MatchResult> results = new ArrayList<>();
-    results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
-    results.add(matchGPA(coreLabels, criteria.getGpa()));
-    results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
-    results.addAll(matchMajor(coreLabels,criteria.getMajor()));
-    results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
-    results.addAll(matchLanguages(coreLabels,criteria.getLanguage()));
 
+    for (Criteria criteria : criteriaList) {
+      // Now you can access each criteria object in the list and use coreLabels for matching
+      results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
+      results.add(matchGPA(coreLabels, criteria.getGpa()));
+      results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
+      results.addAll(matchMajor(coreLabels, criteria.getMajor()));
+      results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
+      results.addAll(matchLanguages(coreLabels, criteria.getLanguage()));
+    }
+
+
+// Sort the results
     results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
+
+
+    // Deserialize criteria JSON to Criteria object
+//    Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
+//
+//    // Analyze the resume text with the extracted text
+//    CoreDocument coreDocument = new CoreDocument(resumeText);
+//    stanfordCoreNLP.annotate(coreDocument);
+//    List<CoreLabel> coreLabels = coreDocument.tokens();
+//
+//    List<MatchResult> results = new ArrayList<>();
+//    results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
+//    results.add(matchGPA(coreLabels, criteria.getGpa()));
+//    results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
+//    results.addAll(matchMajor(coreLabels,criteria.getMajor()));
+//    results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
+//    results.addAll(matchLanguages(coreLabels,criteria.getLanguage()));
+//
+//    results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
 
     return results;
   }
@@ -224,6 +230,7 @@ public class NERController {
     }
     return values;
   }
+
 
   // Class for the resume input from the admin form
   class ResumeInput {

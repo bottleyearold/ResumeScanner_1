@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Analyzer</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+<body>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="#">Resume.AI</a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin.html">Admin Input</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/jobs.html">Job Listings</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/resume.html">Resume Analyzer</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Resume Upload and Analyzer Form -->
+<form id="resumeForm" enctype="multipart/form-data">
+    <div class="container mt-4">
+        <h3>Upload Resume (PDF):</h3>
+        <div class="form-group">
+            <label for="file-input">Select Resume PDF:</label>
+            <input id="file-input" class="form-control" type="file" accept=".pdf" required>
+        </div>
+
+        <div class="form-group">
+            <button type="button" class="btn btn-primary" onclick="analyzeResume()">Analyze</button>
+        </div>
+
+        <h3>Matching Results:</h3>
+        <div id="result"></div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    function analyzeResume() {
+        var fileInput = document.getElementById("file-input");
+
+        // Validate file input
+        if (!fileInput.files.length) {
+            alert("Please select a resume PDF file.");
+            return;
+        }
+
+        // Fetch job listings to compare against resume
+        $.ajax({
+            type: 'GET',
+            url: "http://localhost:8080/api/v1/jobs",
+            success: function(jobs) {
+                analyzeWithJobs(fileInput.files[0], jobs);  // Call function to analyze resume
+            },
+            error: function(error) {
+                console.log(error);
+                alert('Error fetching jobs');
+            }
+        });
+    }
+
+    function analyzeWithJobs(resumeFile, jobs) {
+        var formData = new FormData();
+        formData.append("resume", resumeFile);
+
+        // Convert job criteria into JSON format
+        var criteriaJson = JSON.stringify(jobs.map(job => ({
+            codingLanguages: job.codingLanguages,
+            gpa: job.gpa,
+            priorExperience: job.priorExperience,
+            preferredLocations: job.preferredLocations,
+            major: job.major,
+            language: job.languages
+        })));
+
+        formData.append("criteria", criteriaJson);
+
+        // Send resume file and criteria to the back-end for analysis
+        $.ajax({
+            type: 'POST',
+            url: "http://localhost:8080/api/v1/analyze",
+            processData: false,
+            contentType: false,
+            data: formData,
+            success: function(response) {
+                var result = "";
+                response.forEach(function(match) {
+                    var color = match.matched ? 'green' : 'red';
+                    result += "<span style='color: " + color + "'>" + match.field + ": " + match.value + "</span><br/>";
+                });
+                $("#result").html(result);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                $("#result").html("<span style='color: red;'>An error occurred: " + errorThrown + "</span>");
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
