@@ -1,10 +1,351 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Landing Page</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Roboto:wght@300&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap for quick styling -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <!-- jQuery for job listings functionality -->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Navbar */
+        nav.navbar {
+            padding: 1rem 2rem;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        nav.navbar a.navbar-brand {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #333;
+            cursor: pointer;
+        }
+
+        nav.navbar a.nav-link {
+            color: #333;
+            margin-right: 1.5rem;
+            font-size: 1rem;
+        }
+
+        nav.navbar a.nav-link:hover {
+            color: #007bff;
+        }
+
+        /* Hero Section */
+        #landing {
+            background: linear-gradient(90deg, #007bff 0%, #00c6ff 100%);
+            color: white;
+            text-align: center;
+            padding: 100px 20px;
+        }
+
+        #landing h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        #landing p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+            max-width: 700px;
+            margin: 0 auto 30px;
+        }
+
+        /* Content Sections */
+        .content {
+            display: none;
+            padding: 60px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Dropbox */
+        .dropbox {
+            border: 4px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            background-color: white;
+            transition: all 0.3s ease;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .dropbox.hover {
+            background-color: #e9ecef;
+            border-color: #0056b3;
+        }
+
+        .dropbox p {
+            font-size: 18px;
+            color: #6c757d;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .btn-upload {
+            margin-top: 20px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #f8f9fa;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        footer p {
+            color: #6c757d;
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+            }
+        }
+
+        /* Job Listings Section */
+        .card {
+            margin-bottom: 20px;
+        }
+
+    </style>
 </head>
 <body>
-$END$
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-light">
+    <a class="navbar-brand" onclick="showPage('landing')">Resume.AI</a>
+    <div class="collapse navbar-collapse">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('resumedrop')">Resume Drop</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('admin')">Add a Job</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('jobs')">Job Listings</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" onclick="showPage('team')">Meet the Team</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero Section -->
+<div id="landing" class="content">
+    <h1>Welcome to Resume.AI!</h1>
+    <p>We offer an innovative approach to the job search process for recruiters and applicants.
+        Join us and benefit from an efficient and innovative candidate search tool!</p>
+</div>
+
+<!-- Resume Drop Section -->
+<div id="resumedrop" class="content">
+    <h2>Resume Drop</h2>
+    <div class="split-container">
+        <!-- Dropbox for Resume Upload -->
+        <div class="dropbox" id="dropbox">
+            <div class="upload-icon">&#8682;</div> <!-- Icon for uploading -->
+            <p>Drag & Drop your resume here</p>
+            <p>or</p>
+            <label class="btn btn-primary btn-upload" for="resume-upload">Select PDF</label>
+            <input type="file" id="resume-upload" accept=".pdf" style="display:none;">
+        </div>
+
+        <!-- Message Area -->
+        <div class="message-area">
+            <h3>Instructions</h3>
+            <p>Please upload your resume in PDF format. You can either drag and drop your file into the dropbox above or click the button to select a file from your computer.</p>
+            <p>If you encounter any issues, feel free to contact our support team.</p>
+            <div id="upload-status" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Other Sections (Initially Hidden) -->
+<div id="admin" class="content">
+    <h2>Admin Input</h2>
+    <p>We offer a wide range of services including web development, mobile app design, and digital marketing. Our team is dedicated to crafting solutions that deliver results.</p>
+</div>
+
+<!-- Job Listings Section -->
+<div id="jobs" class="content">
+    <div class="container mt-4">
+        <h2>Job Listings</h2>
+        <!-- Search Bar -->
+        <input id="searchInput" type="text" class="form-control" placeholder="Search for jobs (e.g. 'Python, 3.5 GPA, New York')">
+        <button class="btn btn-primary mt-3" onclick="performSearch()">Search</button>
+
+        <!-- Job Listings Container -->
+        <div class="container mt-4">
+            <h3>Available Jobs:</h3>
+            <div id="job-listings" class="row">
+                <!-- Job cards will be inserted here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="team" class="content">
+    <h2>Meet the Team</h2>
+    <p>If you'd like to get in touch, feel free to email us at contact@ourcompany.com or call us at 555-555-5555.</p>
+</div>
+
+<!-- Footer -->
+<footer>
+    <p>&copy; 2024 Resume.AI. All Rights Reserved.</p>
+</footer>
+
+<!-- JavaScript for Page Switching & File Upload -->
+<script>
+    // Function to display the selected section
+    function showPage(page) {
+        // Hide all sections
+        document.querySelectorAll('.content').forEach(function(section) {
+            section.style.display = 'none';
+        });
+
+        // Show the selected section
+        document.getElementById(page).style.display = 'block';
+    }
+
+    // Display the landing page by default
+    document.getElementById('landing').style.display = 'block';
+
+    // Handle drag-and-drop functionality
+    const dropbox = document.getElementById('dropbox');
+    const resumeUpload = document.getElementById('resume-upload');
+    const uploadStatus = document.getElementById('upload-status');
+
+    dropbox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropbox.classList.add('hover');
+    });
+
+    dropbox.addEventListener('dragleave', () => {
+        dropbox.classList.remove('hover');
+    });
+
+    dropbox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropbox.classList.remove('hover');
+        const file = e.dataTransfer.files[0];
+        handleFileUpload(file);
+    });
+
+    resumeUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        handleFileUpload(file);
+    });
+
+    function handleFileUpload(file) {
+        if (file && file.type === 'application/pdf') {
+            uploadStatus.innerHTML = `<p class="text-success">File "${file.name}" uploaded successfully!</p>`;
+            // Add your server file handling logic here
+        } else {
+            uploadStatus.innerHTML = `<p class="text-danger">Please upload a valid PDF file.</p>`;
+        }
+    }
+</script>
+
+<!-- JavaScript for Job Listings -->
+<script type="text/javascript">
+    let jobs = [];
+
+    // Function to generate mock job data
+    function generateMockJobs() {
+        const jobsData = [];
+        for (let i = 1; i <= 10; i++) {
+            jobsData.push({
+                jobName: `Job Title ${i}`,
+                codingLanguages: [`Language ${i}`, `Language ${i + 1}`],
+                gpa: (3.0 + (i * 0.1)).toFixed(1),
+                priorExperience: i,
+                preferredLocations: [`Location ${i}`, `Location ${i + 2}`],
+                languages: [`Language ${i}`, `Language ${i + 3}`]
+            });
+        }
+        return jobsData;
+    }
+
+    // Function to display jobs
+    function displayJobs(jobsToDisplay) {
+        // Clear the job listings
+        $("#job-listings").empty();
+
+        // Loop through each job and create an HTML card for it
+        jobsToDisplay.forEach(function(job) {
+            const jobCard = `
+                <div class="col-md-4">
+                    <div class="card mb-4 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">${job.jobName}</h5>
+                            <p class="card-text">
+                                <strong>Coding Languages:</strong> ${job.codingLanguages.join(', ')}<br>
+                                <strong>GPA Requirement:</strong> ${job.gpa}<br>
+                                <strong>Experience:</strong> ${job.priorExperience} years<br>
+                                <strong>Preferred Locations:</strong> ${job.preferredLocations.join(', ')}<br>
+                                <strong>Languages:</strong> ${job.languages.join(', ')}
+                            </p>
+                        </div>
+                    </div>
+                </div>`;
+
+            // Append the job card to the job-listings container
+            $("#job-listings").append(jobCard);
+        });
+    }
+
+    // Function to perform the search based on user input
+    function performSearch() {
+        const searchInput = $('#searchInput').val().toLowerCase().split(',').map(term => term.trim());
+
+        const filteredJobs = jobs.filter(job => {
+            return searchInput.every(term => {
+                return (
+                    job.jobName.toLowerCase().includes(term) ||
+                    job.gpa.toString().includes(term) ||
+                    job.codingLanguages.some(lang => lang.toLowerCase().includes(term)) ||
+                    job.priorExperience.toString().includes(term) ||
+                    job.preferredLocations.some(loc => loc.toLowerCase().includes(term)) ||
+                    job.languages.some(lang => lang.toLowerCase().includes(term))
+                );
+            });
+        });
+
+        // Display filtered jobs
+        displayJobs(filteredJobs);
+    }
+
+    // Fetch jobs when the page loads
+    $(document).ready(function() {
+        jobs = generateMockJobs(); // Use the generated mock data
+        displayJobs(jobs); // Display jobs initially
+    });
+</script>
+
 </body>
 </html>

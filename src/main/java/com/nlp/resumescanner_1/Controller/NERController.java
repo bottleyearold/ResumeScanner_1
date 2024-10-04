@@ -22,250 +22,314 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/api/v1")
 public class NERController {
 
-    @Autowired
-    private StanfordCoreNLP stanfordCoreNLP;
+  @Autowired private StanfordCoreNLP stanfordCoreNLP;
 
-   /* @PostMapping(value = "/analyze")
-    public List<MatchResult> analyze(@RequestBody ResumeInput input) {
-        CoreDocument coreDocument = new CoreDocument(input.getResume());
-        stanfordCoreNLP.annotate(coreDocument);
-        List<CoreLabel> coreLabels = coreDocument.tokens();
+  /* @PostMapping(value = "/analyze")
+  public List<MatchResult> analyze(@RequestBody ResumeInput input) {
+      CoreDocument coreDocument = new CoreDocument(input.getResume());
+      stanfordCoreNLP.annotate(coreDocument);
+      List<CoreLabel> coreLabels = coreDocument.tokens();
 
-        // Analyze the resume against the criteria
-        List<MatchResult> results = new ArrayList<>();
+      // Analyze the resume against the criteria
+      List<MatchResult> results = new ArrayList<>();
 
-        results.add(matchPriorExperience(coreLabels, input.getCriteria().getPriorExperience()));
+      results.add(matchPriorExperience(coreLabels, input.getCriteria().getPriorExperience()));
 
-        results.add(matchGPA(coreLabels, input.getCriteria().getGpa()));
+      results.add(matchGPA(coreLabels, input.getCriteria().getGpa()));
 
-        results.addAll(matchCodingSkills(coreLabels, input.getCriteria().getCodingLanguages()));
-        results.addAll(matchLocation(coreLabels, input.getCriteria().getPreferredLocations()));
-        results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));  // Sort with true (matched) first
+      results.addAll(matchCodingSkills(coreLabels, input.getCriteria().getCodingLanguages()));
+      results.addAll(matchLocation(coreLabels, input.getCriteria().getPreferredLocations()));
+      results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));  // Sort with true (matched) first
 
-        return results;
-    } */
+      return results;
+  } */
 
-
-    // Change method signature
-    @PostMapping(value = "/analyze")
-    public List<MatchResult> analyze(@RequestParam("resume") MultipartFile resumeFile,
-                                     @RequestParam("criteria") String criteriaJson) throws IOException {
-        String resumeText;
-        try {
-            // Read PDF file and extract text
-            resumeText = extractTextFromPdf(resumeFile);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read the PDF file", e);
-        }
-
-        // Deserialize criteria JSON to Criteria object
-        Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
-
-        // Analyze the resume text with the extracted text
-        CoreDocument coreDocument = new CoreDocument(resumeText);
-        stanfordCoreNLP.annotate(coreDocument);
-        List<CoreLabel> coreLabels = coreDocument.tokens();
-
-        List<MatchResult> results = new ArrayList<>();
-        results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
-        results.add(matchGPA(coreLabels, criteria.getGpa()));
-        results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
-        results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
-        results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
-
-        return results;
+  // Change method signature
+  @PostMapping(value = "/analyze")
+  public List<MatchResult> analyze(
+      @RequestParam("resume") MultipartFile resumeFile,
+      @RequestParam("criteria") String criteriaJson)
+      throws IOException {
+    String resumeText;
+    try {
+      // Read PDF file and extract text
+      resumeText = extractTextFromPdf(resumeFile);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to read the PDF file", e);
     }
 
-    private String extractTextFromPdf(MultipartFile file) throws IOException {
-        // Use Apache PDFBox or another library to extract text from the PDF
-        PDDocument document = PDDocument.load(file.getInputStream());
-        PDFTextStripper pdfStripper = new PDFTextStripper();
-        String text = pdfStripper.getText(document);
-        document.close();
-        return text;
+    // Deserialize criteria JSON to Criteria object
+    Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
+
+    // Analyze the resume text with the extracted text
+    CoreDocument coreDocument = new CoreDocument(resumeText);
+    stanfordCoreNLP.annotate(coreDocument);
+    List<CoreLabel> coreLabels = coreDocument.tokens();
+
+    List<MatchResult> results = new ArrayList<>();
+    results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
+    results.add(matchGPA(coreLabels, criteria.getGpa()));
+    results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
+    results.addAll(matchMajor(coreLabels,criteria.getMajor()));
+    results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
+    results.addAll(matchLanguages(coreLabels,criteria.getLanguage()));
+
+    results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
+
+    return results;
+  }
+
+  private String extractTextFromPdf(MultipartFile file) throws IOException {
+    // Use Apache PDFBox or another library to extract text from the PDF
+    PDDocument document = PDDocument.load(file.getInputStream());
+    PDFTextStripper pdfStripper = new PDFTextStripper();
+    String text = pdfStripper.getText(document);
+    document.close();
+    return text;
+  }
+
+  private List<MatchResult> matchLanguages(
+          List<CoreLabel> coreLabels, List<String> requiredLanguages) {
+    // Lowercase all the skills in the resume and check if they match required skills
+    Set<String> foundLanguages =
+            coreLabels.stream()
+                    .map(coreLabel -> coreLabel.originalText().toLowerCase())
+                    .filter(
+                            skill ->
+                                    requiredLanguages.stream()
+                                            .map(String::toLowerCase)
+                                            .collect(Collectors.toSet())
+                                            .contains(skill))
+                    .collect(Collectors.toSet());
+
+    // Prepare results based on matches
+    List<MatchResult> res = new ArrayList<>();
+    for (String ski : requiredLanguages) {
+      boolean matched = foundLanguages.contains(ski.toLowerCase());
+      res.add(new MatchResult("Language", ski, matched));
     }
+    return res;
+  }
 
 
 
-
-    // Method to match coding skills
-    private List<MatchResult> matchCodingSkills(List<CoreLabel> coreLabels, List<String> requiredSkills) {
-        // Lowercase all the skills in the resume and check if they match required skills
-        Set<String> foundSkills = coreLabels.stream()
-                .map(coreLabel -> coreLabel.originalText().toLowerCase())
-                .filter(skill -> requiredSkills.stream()
+  // Method to match coding skills
+  private List<MatchResult> matchCodingSkills(
+      List<CoreLabel> coreLabels, List<String> requiredSkills) {
+    // Lowercase all the skills in the resume and check if they match required skills
+    Set<String> foundSkills =
+        coreLabels.stream()
+            .map(coreLabel -> coreLabel.originalText().toLowerCase())
+            .filter(
+                skill ->
+                    requiredSkills.stream()
                         .map(String::toLowerCase)
                         .collect(Collectors.toSet())
                         .contains(skill))
-                .collect(Collectors.toSet());
+            .collect(Collectors.toSet());
 
-        // Prepare results based on matches
-        List<MatchResult> results = new ArrayList<>();
-        for (String skill : requiredSkills) {
-            boolean matched = foundSkills.contains(skill.toLowerCase());
-            results.add(new MatchResult("Coding Skill", skill, matched));
-        }
-        return results;
+    // Prepare results based on matches
+    List<MatchResult> results = new ArrayList<>();
+    for (String skill : requiredSkills) {
+      boolean matched = foundSkills.contains(skill.toLowerCase());
+      results.add(new MatchResult("Coding Skill", skill, matched));
+    }
+    return results;
+  }
+
+  // Method to match GPA requirement
+  private MatchResult matchGPA(List<CoreLabel> coreLabels, String requiredGPA) {
+    double gpaRequirement = Double.parseDouble(requiredGPA);
+    // Ensure the pattern captures GPAs more strictly
+    Pattern gpaPattern =
+        Pattern.compile("\\b([0-4](\\.\\d{1,2}))\\b"); // GPA format, e.g., 3.0, 3.5
+    for (CoreLabel label : coreLabels) {
+      String text = label.originalText();
+      Matcher matcher = gpaPattern.matcher(text);
+      if (matcher.matches()) {
+        double foundGPA = Double.parseDouble(matcher.group(1));
+        return new MatchResult("GPA", text, foundGPA >= gpaRequirement);
+      }
+    }
+    return new MatchResult("GPA", "Not Found", false);
+  }
+
+  private MatchResult matchPriorExperience(List<CoreLabel> coreLabels, String requiredYears) {
+    int requiredExperience = Integer.parseInt(requiredYears);
+
+    // We will concatenate the tokens and then look for experience patterns
+    StringBuilder resumeText = new StringBuilder();
+    for (CoreLabel label : coreLabels) {
+      resumeText.append(label.originalText()).append(" ");
     }
 
-    // Method to match GPA requirement
-    private MatchResult matchGPA(List<CoreLabel> coreLabels, String requiredGPA) {
-        double gpaRequirement = Double.parseDouble(requiredGPA);
-        // Ensure the pattern captures GPAs more strictly
-        Pattern gpaPattern = Pattern.compile("\\b([0-4](\\.\\d{1,2}))\\b");  // GPA format, e.g., 3.0, 3.5
-        for (CoreLabel label : coreLabels) {
-            String text = label.originalText();
-            Matcher matcher = gpaPattern.matcher(text);
-            if (matcher.matches()) {
-                double foundGPA = Double.parseDouble(matcher.group(1));
-                return new MatchResult("GPA", text, foundGPA >= gpaRequirement);
-            }
-        }
-        return new MatchResult("GPA", "Not Found", false);
+    // Handle both "year" and "years" properly
+    Pattern experiencePattern = Pattern.compile("\\b(\\d{1,2})\\s+years?\\b");
+    Matcher matcher =
+        experiencePattern.matcher(
+            resumeText
+                .toString()
+                .toLowerCase()); // Convert resume to lowercase for case-insensitive matching
+
+    if (matcher.find()) {
+      int foundExperience =
+          Integer.parseInt(matcher.group(1)); // Get the years from the capturing group
+      return new MatchResult(
+          "Work Experience", matcher.group(), foundExperience >= requiredExperience);
     }
 
-    private MatchResult matchPriorExperience(List<CoreLabel> coreLabels, String requiredYears) {
-        int requiredExperience = Integer.parseInt(requiredYears);
+    return new MatchResult("Work Experience", "Not Found", false);
+  }
 
-        // We will concatenate the tokens and then look for experience patterns
-        StringBuilder resumeText = new StringBuilder();
-        for (CoreLabel label : coreLabels) {
-            resumeText.append(label.originalText()).append(" ");
-        }
+  private List<MatchResult> matchLocation(
+      List<CoreLabel> coreLabels, List<String> requiredLocations) {
+    // Convert required locations to lowercase and trim spaces
+    List<String> cleanedLocations =
+        requiredLocations.stream()
+            .map(location -> location.toLowerCase().trim())
+            .collect(Collectors.toList());
 
-        // Handle both "year" and "years" properly
-        Pattern experiencePattern = Pattern.compile("\\b(\\d{1,2})\\s+years?\\b");
-        Matcher matcher = experiencePattern.matcher(resumeText.toString().toLowerCase());  // Convert resume to lowercase for case-insensitive matching
+    String resumeText =
+        coreLabels.stream()
+            .map(coreLabel -> coreLabel.originalText().toLowerCase())
+            .collect(Collectors.joining(" ")); // Join all tokens with a space
 
-        if (matcher.find()) {
-            int foundExperience = Integer.parseInt(matcher.group(1));  // Get the years from the capturing group
-            return new MatchResult("Work Experience", matcher.group(), foundExperience >= requiredExperience);
-        }
-
-        return new MatchResult("Work Experience", "Not Found", false);
+    // Prepare results based on matches
+    List<MatchResult> values = new ArrayList<>();
+    for (String location : cleanedLocations) {
+      boolean matched =
+          resumeText.contains(location); // Check if the location is present in the full resume text
+      values.add(new MatchResult("State", location, matched));
     }
-    private List<MatchResult> matchLocation(List<CoreLabel> coreLabels, List<String> requiredLocations) {
-        // Convert required locations to lowercase and trim spaces
-        List<String> cleanedLocations = requiredLocations.stream()
-                .map(location -> location.toLowerCase().trim())
-                .collect(Collectors.toList());
+    return values;
+  }
 
+  private List<MatchResult> matchMajor(List<CoreLabel> coreLabels, List<String> requiredMajors) {
+    List<String> cleanedLocations =
+            requiredMajors.stream()
+                    .map(location -> location.toLowerCase().trim())
+                    .collect(Collectors.toList());
 
-        String resumeText = coreLabels.stream()
-                .map(coreLabel -> coreLabel.originalText().toLowerCase())
-                .collect(Collectors.joining(" "));  // Join all tokens with a space
+    String resumeText =
+            coreLabels.stream()
+                    .map(coreLabel -> coreLabel.originalText().toLowerCase())
+                    .collect(Collectors.joining(" ")); // Join all tokens with a space
 
-        // Prepare results based on matches
-        List<MatchResult> values = new ArrayList<>();
-        for (String location : cleanedLocations) {
-            boolean matched = resumeText.contains(location);  // Check if the location is present in the full resume text
-            values.add(new MatchResult("State", location, matched));
-        }
-        return values;
+    // Prepare results based on matches
+    List<MatchResult> values = new ArrayList<>();
+    for (String major : cleanedLocations) {
+      boolean matched =
+              resumeText.contains(major); // Check if the location is present in the full resume text
+      values.add(new MatchResult("Major", major, matched));
     }
+    return values;
+  }
 
-
-
-}
-
-// Class for the resume input from the admin form
-class ResumeInput {
+  // Class for the resume input from the admin form
+  class ResumeInput {
     private String resume;
     private Criteria criteria;
 
     // Getters and setters
     public String getResume() {
-        return resume;
+      return resume;
     }
 
     public void setResume(String resume) {
-        this.resume = resume;
+      this.resume = resume;
     }
 
     public Criteria getCriteria() {
-        return criteria;
+      return criteria;
     }
 
     public void setCriteria(Criteria criteria) {
-        this.criteria = criteria;
+      this.criteria = criteria;
     }
-}
+  }
 
-// Class for the admin's criteria input (e.g., coding languages, GPA, etc.)
-class Criteria {
+  // Class for the admin's criteria input (e.g., coding languages, GPA, etc.)
+  public static class Criteria {
     private List<String> codingLanguages;
     private String gpa;
     private String priorExperience;
     private List<String> preferredLocations;
+    private List<String> language;
 
+    private List<String> major;
 
     public List<String> getPreferredLocations() {
-        return preferredLocations;
+      return preferredLocations;
     }
 
     public void setPreferredLocations(List<String> preferredLocations) {
-        this.preferredLocations = preferredLocations;
+      this.preferredLocations = preferredLocations;
     }
 
     public List<String> getCodingLanguages() {
-        return codingLanguages;
+      return codingLanguages;
     }
 
     public void setCodingLanguages(List<String> codingLanguages) {
-        this.codingLanguages = codingLanguages;
+      this.codingLanguages = codingLanguages;
     }
 
     public String getGpa() {
-        return gpa;
+      return gpa;
     }
 
     public void setGpa(String gpa) {
-        this.gpa = gpa;
+      this.gpa = gpa;
     }
 
     public String getPriorExperience() {
-        return priorExperience;
+      return priorExperience;
     }
 
     public void setPriorExperience(String priorExperience) {
-        this.priorExperience = priorExperience;
+      this.priorExperience = priorExperience;
     }
-}
+    public List<String> getLanguage() { return language;}
+    public List<String> getMajor() { return major;}
 
-// Class to represent the result of each match attempt
-class MatchResult {
+    public void setMajor(List<String> major) {this.major = major;}
+  }
+
+  // Class to represent the result of each match attempt
+  class MatchResult {
     private String field;
     private String value;
     private boolean matched;
 
     public MatchResult(String field, String value, boolean matched) {
-        this.field = field;
-        this.value = value;
-        this.matched = matched;
+      this.field = field;
+      this.value = value;
+      this.matched = matched;
     }
 
     // Getters and setters
     public String getField() {
-        return field;
+      return field;
     }
 
     public void setField(String field) {
-        this.field = field;
+      this.field = field;
     }
 
     public String getValue() {
-        return value;
+      return value;
     }
 
     public void setValue(String value) {
-        this.value = value;
+      this.value = value;
     }
 
     public boolean isMatched() {
-        return matched;
+      return matched;
     }
 
     public void setMatched(boolean matched) {
-        this.matched = matched;
+      this.matched = matched;
     }
+  }
 }

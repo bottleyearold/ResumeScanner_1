@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <title>NER Application</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 </head>
 <body>
 
-<form id="resumeForm">
+<form id="resumeForm" enctype="multipart/form-data">
 
-    <div class="container">
+    <div class="container mt-4">
         <h3>Upload Resume (PDF):</h3>
         <div class="form-group">
             <label for="file-input">Select Resume PDF:</label>
@@ -20,19 +20,27 @@
         <h3>Admin Input (Criteria):</h3>
         <div class="form-group">
             <label for="coding-languages">Coding Languages (comma-separated):</label>
-            <input id="coding-languages" class="form-control" type="text" placeholder="e.g. Java, Python, SQL">
+            <input id="coding-languages" class="form-control" type="text" placeholder="e.g. Java, Python, SQL" required>
         </div>
         <div class="form-group">
             <label for="gpa">GPA Requirement (min):</label>
-            <input id="gpa" class="form-control" type="number" placeholder="e.g. 3.5">
+            <input id="gpa" class="form-control" type="number" step="0.1" placeholder="e.g. 3.5" required>
         </div>
         <div class="form-group">
             <label for="experience">Years of Work Experience (min):</label>
-            <input id="experience" class="form-control" type="number" placeholder="e.g. 2">
-        </div >
+            <input id="experience" class="form-control" type="number" placeholder="e.g. 2" required>
+        </div>
         <div class="form-group">
             <label for="state">Preferred State:</label>
-            <input id="state" class="form-control" type="text" placeholder="e.g. New York, North Carolina">
+            <input id="state" class="form-control" type="text" placeholder="e.g. New York, North Carolina" required>
+        </div>
+        <div class="form-group">
+            <label for="major">Major:</label>
+            <input id="major" class="form-control" type="text" placeholder="e.g. Computer science, Data science" required>
+        </div>
+        <div class="form-group">
+            <label for="language">Preferred Language:</label>
+                <input id="language" class="form-control" type="text" placeholder="e.g. English, Spanish" required>
         </div>
 
         <div class="form-group">
@@ -47,36 +55,51 @@
 <script type="text/javascript">
     function analyzeResume() {
         var fileInput = document.getElementById("file-input");
+
+        // Validate file input
+        if (!fileInput.files.length) {
+            alert("Please select a resume PDF file.");
+            return;
+        }
+
+        // Gather input values
         var codingLanguages = $("#coding-languages").val();
         var gpa = $("#gpa").val();
         var experience = $("#experience").val();
         var preferredLocations = $("#state").val().split(',').map(location => location.trim());
+        var major = $("#major").val().split(',').map(m => m.trim());
+        var language = $("#language").val().split(',').map(language => language.trim());
 
         var criteria = {
             codingLanguages: codingLanguages.split(',').map(lang => lang.trim()),
-            gpa: gpa,
-            priorExperience: experience,
-            preferredLocations: preferredLocations
+            gpa: parseFloat(gpa),
+            priorExperience: parseInt(experience),
+            preferredLocations: preferredLocations,
+            major: major,
+            language : language
         };
-
 
         var formData = new FormData();
         formData.append("resume", fileInput.files[0]);
         formData.append("criteria", JSON.stringify(criteria));
 
+        // AJAX request
         $.ajax({
             type: 'POST',
             url: "http://localhost:8080/api/v1/analyze",
-            processData: false, // Important: Prevent jQuery from processing the data
-            contentType: false, // Important: Prevent jQuery from setting content type
+            processData: false,
+            contentType: false,
             data: formData,
             success: function(response) {
                 var result = "";
                 response.forEach(function(match) {
                     var color = match.matched ? 'green' : 'red';
-                    result += "<span style='color: "+ color +"'>" + match.field + ": " + match.value + "</span><br/>";
+                    result += "<span style='color: " + color + "'>" + match.field + ": " + match.value + "</span><br/>";
                 });
                 $("#result").html(result);
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                $("#result").html("<span style='color: red;'>An error occurred: " + errorThrown + "</span>");
             }
         });
     }
@@ -84,4 +107,5 @@
 
 </body>
 </html>
+
 
