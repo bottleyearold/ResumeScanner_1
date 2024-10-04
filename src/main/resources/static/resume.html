@@ -82,7 +82,7 @@
 
         // Convert job criteria into JSON format
         var criteriaJson = JSON.stringify(jobs.map(job => ({
-            jobName: job.jobName,  // Added jobName
+            jobName: job.jobName,
             codingLanguages: job.codingLanguages,
             gpa: job.gpa,
             priorExperience: job.priorExperience,
@@ -101,48 +101,93 @@
             contentType: false,
             data: formData,
             success: function(response) {
-                var resultHtml = '';
+                console.log('Jobs:', JSON.stringify(jobs, null, 2));
+                console.log('Response from server:', JSON.stringify(response, null, 2));
 
-                // Create side-by-side structure for each job
-                response.forEach(function(match, index) {
-                    // Check if the job exists at the current index
-                    if (jobs[index]) {
-                        resultHtml += '<div class="row">';
-                        resultHtml += '   <div class="col-md-6">';
-                        resultHtml += '       <h5>' + jobs[index].jobName + ' (' + (index + 1) + '):</h5>';  // Display Job Name
-                        resultHtml += '       <p><strong>Coding Languages:</strong> ' + (jobs[index].codingLanguages ? jobs[index].codingLanguages.join(", ") : 'N/A') + '</p>';
-                        resultHtml += '       <p><strong>GPA:</strong> ' + (jobs[index].gpa ? jobs[index].gpa : 'N/A') + '</p>';
-                        resultHtml += '       <p><strong>Experience:</strong> ' + (jobs[index].priorExperience ? jobs[index].priorExperience + ' years' : 'N/A') + '</p>';
-                        resultHtml += '       <p><strong>Preferred Locations:</strong> ' + (jobs[index].preferredLocations ? jobs[index].preferredLocations.join(", ") : 'N/A') + '</p>';
-                        resultHtml += '       <p><strong>Majors:</strong> ' + (jobs[index].majors ? jobs[index].majors.join(", ") : 'N/A') + '</p>';
-                        resultHtml += '       <p><strong>Languages:</strong> ' + (jobs[index].languages ? jobs[index].languages.join(", ") : 'N/A') + '</p>';
-                        resultHtml += '   </div>';
+                let resultHtml = '';
 
-                        // Display analysis results next to the job description
-                        resultHtml += '   <div class="col-md-6">';
-                        resultHtml += '       <h5>Matching Results:</h5>';
-                        if (Array.isArray(match)) {
-                            match.forEach(function(result) {
-                                var color = result.matched ? 'green' : 'red';
-                                resultHtml += '<p style="color: ' + color + '">' + result.field + ': ' + result.value + '</p>';
-                            });
-                        } else {
-                            resultHtml += '<p>No matching results available.</p>';
+                jobs.forEach(function(job) {
+                    console.log('Job:', job);  // Debug: Log job details for debugging
+
+                    // Filter matching results for the current job based on fields like "Coding Skill", "Location", etc.
+                    let jobResults = response.filter(result => {
+                        console.log('Result:', result);  // Debug: Log each result being filtered
+                        if (result.field === 'Coding Skill' && job.codingLanguages.includes(result.value)) {
+                            return true;
                         }
-                        resultHtml += '   </div>';
-                        resultHtml += '</div><hr>';
+                        if (result.field === 'State' && job.preferredLocations.includes(result.value)) {
+                            return true;
+                        }
+                        if (result.field === 'Major' && job.majors.includes(result.value)) {
+                            return true;
+                        }
+                        if (result.field === 'Language' && job.languages.includes(result.value)) {
+                            return true;
+                        }
+                        return false;
+                    });
+
+                    // Debugging: Log the jobResults after filtering
+                    console.log('Job Results:', jobResults);
+
+                    let uniqueResults = new Set();
+
+                    // Start building HTML for this job's results
+                    resultHtml += '<div class="row">';
+                    resultHtml += '   <div class="col-md-6">';
+                    resultHtml += `       <h5>${job.jobName || 'Unknown Job'}:</h5>`;
+                    resultHtml += `       <p><strong>Coding Languages:</strong> ${job.codingLanguages?.join(", ") || 'N/A'}</p>`;
+                    resultHtml += `       <p><strong>GPA:</strong> ${job.gpa || 'N/A'}</p>`;
+                    resultHtml += `       <p><strong>Experience:</strong> ${job.priorExperience || 'N/A'} years</p>`;
+                    resultHtml += `       <p><strong>Preferred Locations:</strong> ${job.preferredLocations?.join(", ") || 'N/A'}</p>`;
+                    resultHtml += `       <p><strong>Majors:</strong> ${job.majors?.join(", ") || 'N/A'}</p>`;
+                    resultHtml += `       <p><strong>Languages:</strong> ${job.languages?.join(", ") || 'N/A'}</p>`;
+                    resultHtml += '   </div>';
+
+                    resultHtml += '   <div class="col-md-6">';
+                    resultHtml += '       <h5>Matching Results:</h5>';
+
+                    if (Array.isArray(jobResults) && jobResults.length > 0) {
+                        jobResults.forEach(function(result) {
+                            let uniqueKey = `${result.field}: ${result.value}`;
+
+                            // Check if this key has already been added; if not, add it
+                            if (!uniqueResults.has(uniqueKey)) {
+                                var color = result.matched ? 'green' : 'red';
+                                resultHtml += `<p style="color: ${color}">${result.field}: ${result.value}</p>`;
+                                uniqueResults.add(uniqueKey);
+                            }
+                        });
+                    } else {
+                        resultHtml += '<p>No matching results available.</p>';
                     }
+
+                    resultHtml += '   </div>';
+                    resultHtml += '</div><hr>';
                 });
 
-                // Set resultHtml inside the analysis section
+                // Insert the generated HTML into the analysis section
                 $("#analysis-section").html(resultHtml);
             },
+
             error: function(jqXHR, textStatus, errorThrown) {
-                $("#analysis-section").html("<span style='color: red;'>An error occurred: " + errorThrown + "</span>");
+                $("#analysis-section").html(`<span style='color: red;'>An error occurred: ${errorThrown}</span>`);
             }
         });
     }
+
+
+
+
+
+
+
+
+
+
+
 </script>
 
 </body>
 </html>
+

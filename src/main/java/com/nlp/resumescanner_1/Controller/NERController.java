@@ -88,61 +88,62 @@ public class NERController {
     return text;
   }
 
+  // Method to match languages
   private List<MatchResult> matchLanguages(
           List<CoreLabel> coreLabels, List<String> requiredLanguages) {
-    // Lowercase all the skills in the resume and check if they match required skills
     Set<String> foundLanguages =
             coreLabels.stream()
                     .map(coreLabel -> coreLabel.originalText().toLowerCase())
                     .filter(
-                            skill ->
+                            language ->
                                     requiredLanguages.stream()
                                             .map(String::toLowerCase)
                                             .collect(Collectors.toSet())
-                                            .contains(skill))
+                                            .contains(language))
                     .collect(Collectors.toSet());
 
-    // Prepare results based on matches
     List<MatchResult> res = new ArrayList<>();
-    for (String ski : requiredLanguages) {
-      boolean matched = foundLanguages.contains(ski.toLowerCase());
-      res.add(new MatchResult("Language", ski, matched));
+    for (String language : requiredLanguages) {
+      boolean matched = foundLanguages.contains(language.toLowerCase());
+      res.add(new MatchResult("Language", language, matched));
     }
+    return res;
+  }
+
+  // Method to match coding skills
+  private List<MatchResult> matchCodingSkills(List<CoreLabel> coreLabels, List<String> requiredSkills) {
+    // Use a Set to ensure no duplicate skills
+    Set<String> foundSkills = coreLabels.stream()
+            .map(coreLabel -> coreLabel.originalText().toLowerCase().trim())
+            .filter(skill -> requiredSkills.stream()
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toSet())
+                    .contains(skill))
+            .collect(Collectors.toSet());
+
+    List<MatchResult> res = new ArrayList<>();
+    // Use another Set to keep track of added skills and prevent duplicates in results
+    Set<String> uniqueSkills = new HashSet<>();
+
+    for (String skill : requiredSkills) {
+      String skillLower = skill.toLowerCase();
+      if (!uniqueSkills.contains(skillLower)) {
+        boolean matched = foundSkills.contains(skillLower);
+        res.add(new MatchResult("Coding Skill", skill, matched));
+        uniqueSkills.add(skillLower); // Add to the set to prevent future duplicates
+      }
+    }
+
     return res;
   }
 
 
 
-  // Method to match coding skills
-  private List<MatchResult> matchCodingSkills(
-      List<CoreLabel> coreLabels, List<String> requiredSkills) {
-    // Lowercase all the skills in the resume and check if they match required skills
-    Set<String> foundSkills =
-        coreLabels.stream()
-            .map(coreLabel -> coreLabel.originalText().toLowerCase())
-            .filter(
-                skill ->
-                    requiredSkills.stream()
-                        .map(String::toLowerCase)
-                        .collect(Collectors.toSet())
-                        .contains(skill))
-            .collect(Collectors.toSet());
-
-    // Prepare results based on matches
-    List<MatchResult> results = new ArrayList<>();
-    for (String skill : requiredSkills) {
-      boolean matched = foundSkills.contains(skill.toLowerCase());
-      results.add(new MatchResult("Coding Skill", skill, matched));
-    }
-    return results;
-  }
-
   // Method to match GPA requirement
   private MatchResult matchGPA(List<CoreLabel> coreLabels, String requiredGPA) {
     double gpaRequirement = Double.parseDouble(requiredGPA);
-    // Ensure the pattern captures GPAs more strictly
     Pattern gpaPattern =
-        Pattern.compile("\\b([0-4](\\.\\d{1,2}))\\b"); // GPA format, e.g., 3.0, 3.5
+            Pattern.compile("\\b([0-4](\\.\\d{1,2}))\\b"); // GPA format, e.g., 3.0, 3.5
     for (CoreLabel label : coreLabels) {
       String text = label.originalText();
       Matcher matcher = gpaPattern.matcher(text);
@@ -154,77 +155,77 @@ public class NERController {
     return new MatchResult("GPA", "Not Found", false);
   }
 
+  // Method to match prior experience
   private MatchResult matchPriorExperience(List<CoreLabel> coreLabels, String requiredYears) {
     int requiredExperience = Integer.parseInt(requiredYears);
-
-    // We will concatenate the tokens and then look for experience patterns
     StringBuilder resumeText = new StringBuilder();
     for (CoreLabel label : coreLabels) {
       resumeText.append(label.originalText()).append(" ");
     }
 
-    // Handle both "year" and "years" properly
     Pattern experiencePattern = Pattern.compile("\\b(\\d{1,2})\\s+years?\\b");
-    Matcher matcher =
-        experiencePattern.matcher(
-            resumeText
-                .toString()
-                .toLowerCase()); // Convert resume to lowercase for case-insensitive matching
+    Matcher matcher = experiencePattern.matcher(resumeText.toString().toLowerCase());
 
     if (matcher.find()) {
-      int foundExperience =
-          Integer.parseInt(matcher.group(1)); // Get the years from the capturing group
-      return new MatchResult(
-          "Work Experience", matcher.group(), foundExperience >= requiredExperience);
+      int foundExperience = Integer.parseInt(matcher.group(1));
+      return new MatchResult("Work Experience", matcher.group(), foundExperience >= requiredExperience);
     }
 
     return new MatchResult("Work Experience", "Not Found", false);
   }
 
+  // Method to match locations
   private List<MatchResult> matchLocation(
-      List<CoreLabel> coreLabels, List<String> requiredLocations) {
+          List<CoreLabel> coreLabels, List<String> requiredLocations) {
     // Convert required locations to lowercase and trim spaces
     List<String> cleanedLocations =
-        requiredLocations.stream()
-            .map(location -> location.toLowerCase().trim())
-            .collect(Collectors.toList());
+            requiredLocations.stream()
+                    .map(location -> location.toLowerCase().trim())
+                    .collect(Collectors.toList());
 
     String resumeText =
-        coreLabels.stream()
-            .map(coreLabel -> coreLabel.originalText().toLowerCase())
-            .collect(Collectors.joining(" ")); // Join all tokens with a space
+            coreLabels.stream()
+                    .map(coreLabel -> coreLabel.originalText().toLowerCase())
+                    .collect(Collectors.joining(" ")); // Join all tokens with a space
 
     // Prepare results based on matches
     List<MatchResult> values = new ArrayList<>();
     for (String location : cleanedLocations) {
       boolean matched =
-          resumeText.contains(location); // Check if the location is present in the full resume text
+              resumeText.contains(location); // Check if the location is present in the full resume text
       values.add(new MatchResult("State", location, matched));
     }
     return values;
   }
 
-  private List<MatchResult> matchMajor(List<CoreLabel> coreLabels, List<String> requiredMajors)  {
-    // Lowercase all the skills in the resume and check if they match required skills
-    Set<String> majors_1 =
-            coreLabels.stream()
-                    .map(coreLabel -> coreLabel.originalText().toLowerCase())
-                    .filter(
-                            skill ->
-                                    requiredMajors.stream()
-                                            .map(String::toLowerCase)
-                                            .collect(Collectors.toSet())
-                                            .contains(skill))
-                    .collect(Collectors.toSet());
 
-    // Prepare results based on matches
+
+  // Method to match majors
+  private List<MatchResult> matchMajor(List<CoreLabel> coreLabels, List<String> requiredMajors) {
+    Set<String> foundMajors = coreLabels.stream()
+            .map(coreLabel -> coreLabel.originalText().toLowerCase().trim())
+            .filter(major -> requiredMajors.stream()
+                    .map(String::toLowerCase)
+                    .collect(Collectors.toSet())
+                    .contains(major))
+            .collect(Collectors.toSet());
+
     List<MatchResult> res = new ArrayList<>();
-    for (String skill : requiredMajors) {
-      boolean match = majors_1.contains(skill.toLowerCase());
-      res.add(new MatchResult("Major", skill, match));
+    Set<String> uniqueMajors = new HashSet<>();
+
+    for (String major : requiredMajors) {
+      String majorLower = major.toLowerCase();
+      if (!uniqueMajors.contains(majorLower)) {
+        boolean matched = foundMajors.contains(majorLower);
+        res.add(new MatchResult("Major", major, matched));
+        uniqueMajors.add(majorLower); // Add to set to avoid duplicates
+      }
     }
+
     return res;
   }
+
+
 
 
   // Class for the resume input from the admin form
