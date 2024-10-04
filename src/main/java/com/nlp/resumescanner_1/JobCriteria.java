@@ -1,5 +1,6 @@
 package com.nlp.resumescanner_1;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class JobCriteria {
@@ -12,6 +13,14 @@ public class JobCriteria {
     private List<String> languages;
     private List<String> majors;  // New field for majors
     private Double weights;
+
+    public JobCriteria() {
+        this.codingLanguages = new ArrayList<>();
+        this.preferredLocations = new ArrayList<>();
+        this.languages = new ArrayList<>();
+        this.majors = new ArrayList<>();  // Initialize majors to avoid null
+    }
+
 
     // Getters and Setters for all fields
     public String getJobName() {

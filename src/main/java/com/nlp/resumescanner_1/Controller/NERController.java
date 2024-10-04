@@ -1,7 +1,9 @@
 package com.nlp.resumescanner_1.Controller;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.nlp.resumescanner_1.model.Type;
+import com.nlp.resumescanner_1.JobCriteria;
 
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreLabel;
@@ -10,8 +12,10 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 import java.io.IOException;
 import java.util.*;
@@ -24,6 +28,9 @@ import java.util.stream.Collectors;
 public class NERController {
 
   @Autowired private StanfordCoreNLP stanfordCoreNLP;
+    @Qualifier("handlerExceptionResolver")
+    @Autowired
+    private HandlerExceptionResolver handlerExceptionResolver;
 
   // Change method signature
   @PostMapping(value = "/analyze")
@@ -40,6 +47,7 @@ public class NERController {
     }
     // Deserialize criteria JSON to a List of Criteria objects
     List<Criteria> criteriaList = new ObjectMapper().readValue(criteriaJson, new TypeReference<List<Criteria>>() {});
+    // Static method
 
 // Analyze the resume text with Stanford CoreNLP
     CoreDocument coreDocument = new CoreDocument(resumeText);
@@ -54,7 +62,8 @@ public class NERController {
       results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
       results.add(matchGPA(coreLabels, criteria.getGpa()));
       results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
-      results.addAll(matchMajor(coreLabels, criteria.getMajor()));
+      results.addAll(matchMajor(coreLabels, criteria.getMajor() != null ? criteria.getMajor() : new ArrayList<>()));
+      System.out.println("Majors to match: " + criteria.getMajor());
       results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
       results.addAll(matchLanguages(coreLabels, criteria.getLanguage()));
     }
@@ -66,21 +75,6 @@ public class NERController {
 
     // Deserialize criteria JSON to Criteria object
 //    Criteria criteria = new ObjectMapper().readValue(criteriaJson, Criteria.class);
-//
-//    // Analyze the resume text with the extracted text
-//    CoreDocument coreDocument = new CoreDocument(resumeText);
-//    stanfordCoreNLP.annotate(coreDocument);
-//    List<CoreLabel> coreLabels = coreDocument.tokens();
-//
-//    List<MatchResult> results = new ArrayList<>();
-//    results.add(matchPriorExperience(coreLabels, criteria.getPriorExperience()));
-//    results.add(matchGPA(coreLabels, criteria.getGpa()));
-//    results.addAll(matchCodingSkills(coreLabels, criteria.getCodingLanguages()));
-//    results.addAll(matchMajor(coreLabels,criteria.getMajor()));
-//    results.addAll(matchLocation(coreLabels, criteria.getPreferredLocations()));
-//    results.addAll(matchLanguages(coreLabels,criteria.getLanguage()));
-//
-//    results.sort((r1, r2) -> Boolean.compare(r2.isMatched(), r1.isMatched()));
 
     return results;
   }
@@ -210,25 +204,26 @@ public class NERController {
     return values;
   }
 
-  private List<MatchResult> matchMajor(List<CoreLabel> coreLabels, List<String> requiredMajors) {
-    List<String> cleanedLocations =
-            requiredMajors.stream()
-                    .map(location -> location.toLowerCase().trim())
-                    .collect(Collectors.toList());
-
-    String resumeText =
+  private List<MatchResult> matchMajor(List<CoreLabel> coreLabels, List<String> requiredMajors)  {
+    // Lowercase all the skills in the resume and check if they match required skills
+    Set<String> majors_1 =
             coreLabels.stream()
                     .map(coreLabel -> coreLabel.originalText().toLowerCase())
-                    .collect(Collectors.joining(" ")); // Join all tokens with a space
+                    .filter(
+                            skill ->
+                                    requiredMajors.stream()
+                                            .map(String::toLowerCase)
+                                            .collect(Collectors.toSet())
+                                            .contains(skill))
+                    .collect(Collectors.toSet());
 
     // Prepare results based on matches
-    List<MatchResult> values = new ArrayList<>();
-    for (String major : cleanedLocations) {
-      boolean matched =
-              resumeText.contains(major); // Check if the location is present in the full resume text
-      values.add(new MatchResult("Major", major, matched));
+    List<MatchResult> res = new ArrayList<>();
+    for (String skill : requiredMajors) {
+      boolean match = majors_1.contains(skill.toLowerCase());
+      res.add(new MatchResult("Major", skill, match));
     }
-    return values;
+    return res;
   }
 
 
@@ -262,8 +257,17 @@ public class NERController {
     private String priorExperience;
     private List<String> preferredLocations;
     private List<String> language;
+    @JsonProperty("majors")
+    private List<String> majors;
+    private String jobName;
 
-    private List<String> major;
+    public String getJobName() {
+      return jobName;
+    }
+
+    public void setJobName(String jobName) {
+      this.jobName = jobName;
+    }
 
     public List<String> getPreferredLocations() {
       return preferredLocations;
@@ -297,9 +301,13 @@ public class NERController {
       this.priorExperience = priorExperience;
     }
     public List<String> getLanguage() { return language;}
-    public List<String> getMajor() { return major;}
+    public List<String> getMajor() {
+      return majors != null ? majors : new ArrayList<>();  // Ensure major is never null
+    }
 
-    public void setMajor(List<String> major) {this.major = major;}
+    public void setMajor(List<String> majors) {
+      this.majors = majors != null ? majors : new ArrayList<>();  // Ensure majors is never null
+    }
   }
 
   // Class to represent the result of each match attempt

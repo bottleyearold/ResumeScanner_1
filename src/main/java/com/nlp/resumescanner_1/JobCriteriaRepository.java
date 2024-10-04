@@ -34,11 +34,10 @@ public class JobCriteriaRepository {
 
                 // Check if languages is null and use an empty list if it is
                 jobCriteria.getLanguages() != null ? String.join(", ", jobCriteria.getLanguages()) : "",
-
+                jobCriteria.getWeights(),
                 // Check if majors is null and use an empty list if it is
-                jobCriteria.getMajors() != null ? String.join(", ", jobCriteria.getMajors()) : "",
+                jobCriteria.getMajors() != null ? String.join(", ", jobCriteria.getMajors()) : ""
 
-                jobCriteria.getWeights()
         );
         return jobCriteria;
     }
